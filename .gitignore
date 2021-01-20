@@ -1,1 +1,4 @@
-/tests/*
+tests
+tests/*
+ios/tests/*
+ios/tests
