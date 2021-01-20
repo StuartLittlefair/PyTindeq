@@ -1,8 +1,8 @@
-from reel import ReelNode, shader_src, digit_h, digit_w
-from tindeq import TindeqProgressor
-from repeaters import *
+from src.reel import ReelNode, shader_src, digit_h, digit_w
+from src.tindeq import TindeqProgressor
+from src.repeaters import *
 from scene import *
-from plotting import Plot
+from src.plotting import Plot
 import sound
 import ui
 import random
@@ -36,6 +36,7 @@ class CriticalForceTest(Scene):
         self.work_interval = 7
         self.rest_interval = 3
         self.num_intervals = 30
+        self.num_sets_remaining = 1
         self.zeropoint = 0
         
         # test y/n?

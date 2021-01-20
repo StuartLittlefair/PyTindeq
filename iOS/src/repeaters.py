@@ -3,7 +3,7 @@ import sound
 import console
 import os
 import numpy as np
-from analysis import ResultsScene, analyse_data
+from .analysis import ResultsScene, analyse_data
 
 data_slice = slice(-1024,-1)
 
