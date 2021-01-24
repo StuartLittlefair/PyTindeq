@@ -162,10 +162,8 @@ class TindeqProgressor(object):
     def enable_notifications(self):
         # enable notifications
         try:
-            self.peripheral.set_notify_value(
-                self.read_characteristic, True
-            )
-         except Exception as err:
+            self.peripheral.set_notify_value(self.read_characteristic, True)
+        except Exception as err:
             self.log('failed to start notifications' + str(err))
 
     def disable_notifications(self):
@@ -174,7 +172,7 @@ class TindeqProgressor(object):
             self.peripheral.set_notify_value(
                 self.read_characteristic, False
             )
-         except Exception as err:
+        except Exception as err:
             self.log('failed to start notifications' + str(err))
 
     def start_logging_weight(self):
@@ -195,7 +193,7 @@ class TindeqProgressor(object):
         self.parent = SampleAverage()
         self.start_logging_weight()
         time.sleep(1)
-        self.stop_logging_weight()
+        self.end_logging_weight()
         self._tare_value = self.parent.mean
         self.parent = _saved_parent
 
@@ -220,8 +218,11 @@ if __name__ == '__main__':
         def __init__(self):
             self.wsamples = []
             self.times = []
+            self.active = False
 
         def log_force_sample(self, now, sample):
+            if not self.active:
+                return
             print(f"{now}: {sample} kg")
             self.wsamples.append(sample)
             self.times.append(now)
@@ -243,6 +244,7 @@ if __name__ == '__main__':
     time.sleep(1)
 
     print('go')
+    wrap.active = True
     startT = time.time()
     delegate.start_logging_weight()
     try:
