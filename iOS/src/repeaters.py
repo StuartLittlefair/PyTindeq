@@ -11,10 +11,12 @@ data_slice = slice(-1024,-1)
 class IdleRepeaterState(object):
     @staticmethod
     def update(scn):
-        if scn.tindeq.ready:
+        if scn.tindeq.ready and not scn.active:
             scn.msgbox.text = "touch screen to start"
-            scn.tindeq.soft_tare()
-            time.sleep(1.0)
+            scn.tindeq.enable_notifications()
+            scn.tindeq.start_logging_weight()
+            time.sleep(0.5)
+            scn.active = True
 
     @staticmethod
     def touch_began(scn, touch):
@@ -25,8 +27,8 @@ class IdleRepeaterState(object):
             return
         # move to countdown state
         scn.background_color = 'orange'
-        scn.zeropoint = np.mean(scn.data)
         scn._state = CountdownRepeaterState
+        scn.zeropoint = np.mean(scn.data)
         scn.start_time = time.time()
 
 
@@ -43,9 +45,7 @@ class CountdownRepeaterState(object):
             # clear buffers
             scn.data = []
             scn.times = []
-            scn.active = True
             scn.start_time = time.time()
-            time.sleep(0.5)
             # move to started state
             scn.background_color = '#00d300'
             scn.msgbox.text = ''

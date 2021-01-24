@@ -206,6 +206,7 @@ class SampleAverage:
 
     @property
     def mean(self):
+        print(len(self.weights))
         return np.mean(self.weights)
 
 

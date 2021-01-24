@@ -24,8 +24,8 @@ class CriticalForceTest(Scene):
         Add components to screen, start searcing for tindeq
         """
         console.set_idle_timer_disabled(True)
-        self.active = False
         self.start_time = -5
+        self.active = False
 
         # status of repeater test
         self._state = IdleRepeaterState
@@ -106,8 +106,6 @@ class CriticalForceTest(Scene):
         	self.plot.position = 0, 0
 
     def log_force_sample(self, tstamp, value):
-        if not self.active:
-            return
         self.msgbox.text = '{:.2f} kg'.format(value - self.zeropoint)
         self.times.append(tstamp)
         self.data.append(value - self.zeropoint)
