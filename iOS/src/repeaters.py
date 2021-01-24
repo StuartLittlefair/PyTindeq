@@ -13,8 +13,8 @@ class IdleRepeaterState(object):
     def update(scn):
         if scn.tindeq.ready:
             scn.msgbox.text = "touch screen to start"
-            scn.tindeq.start_logging_weight()
-            time.sleep(0.5)
+            scn.tindeq.soft_tare()
+            time.sleep(1.0)
 
     @staticmethod
     def touch_began(scn, touch):
@@ -28,7 +28,7 @@ class IdleRepeaterState(object):
         scn.zeropoint = np.mean(scn.data)
         scn._state = CountdownRepeaterState
         scn.start_time = time.time()
-        
+
 
 class CountdownRepeaterState(object):
     @staticmethod
@@ -37,20 +37,21 @@ class CountdownRepeaterState(object):
         elapsed = time.time() - scn.start_time
         remaining = scn.countdown_time - elapsed
         scn.msgbox.text = 'starting in {:.0f}s'.format(remaining)
-        
+
         # time to go?
         if time.time() - scn.start_time > scn.countdown_time:
             # clear buffers
             scn.data = []
             scn.times = []
+            scn.active = True
             scn.start_time = time.time()
             time.sleep(0.5)
             # move to started state
             scn.background_color = '#00d300'
             scn.msgbox.text = ''
             scn._state = RunningRepeaterState
-            
-        
+
+
     @staticmethod
     def touch_began(scn, touch):
         """
@@ -59,7 +60,7 @@ class CountdownRepeaterState(object):
         scn.start_time = 0
         scn.background_color = 'red'
         scn._state = IdleRepeaterState
-        
+
 
 class RunningRepeaterState(object):
     @staticmethod
@@ -70,7 +71,7 @@ class RunningRepeaterState(object):
 
         scn.plot.set_xy(scn.times[data_slice], scn.data[data_slice])
         scn.plot.draw()
-            
+
         # have we finished the test?
         if elapsed > scn.num_intervals * (scn.rest_interval + scn.work_interval):
             # we are done!
@@ -79,7 +80,7 @@ class RunningRepeaterState(object):
             scn.tindeq.end_logging_weight()
             scn._state = StoppedRepeaterState
             return
-        
+
         # otherwise
         cycle_number = scn.num_intervals - elapsed // total_time
         time_in_interval = elapsed % total_time
@@ -91,7 +92,7 @@ class RunningRepeaterState(object):
             value = scn.work_interval - time_in_interval
 
         scn.cyclebox.text = '\n Rep {} / {}'.format(int(scn.num_intervals - cycle_number + 1), scn.num_intervals)
-        
+
         scn.background_color = '#00c600' if status == 'work' else 'red'
         if abs(value % 1) < 0.05:
             if (0.5 <= value < 3.5):
@@ -110,6 +111,7 @@ class RunningRepeaterState(object):
         scn.background_color = 'red'
         scn.msgbox.text = 'aborted'
         scn.tindeq.end_logging_weight()
+        scn.active = False
         if scn.mode == 'test':
             scn._state = StoppedRepeaterState
         else:
@@ -120,7 +122,7 @@ class StoppedRepeaterState(object):
     def update(scn):
         # do nothing
         pass
-        
+
     @staticmethod
     def touch_began(scn, touch):
         """
@@ -132,15 +134,15 @@ class StoppedRepeaterState(object):
         mys = ResultsScene(scn, msg, img)
         scn.present_modal_scene(mys)
         scn._state = FinalRepeaterState
-                 
+
 class FinalRepeaterState(object):
     @staticmethod
     def update(scn):
         pass
-        
+
     @staticmethod
     def touch_began(scn, touch):
         scn.background_color = 'red'
         scn._state = IdleRepeaterState
         scn.msgbox.text = 'Press to start' if scn.tindeq.ready else 'scanning for device'
-        
+
