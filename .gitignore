@@ -2,3 +2,6 @@ tests
 tests/*
 ios/tests/*
 ios/tests
+test.txt
+laptop/tests
+laptopt/tests/*
