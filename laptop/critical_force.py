@@ -10,7 +10,7 @@ from bokeh.application import Application
 from bokeh.application.handlers.function import FunctionHandler
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.layouts import row, column
-from bokeh.models import Button, Slider, Div, Band, Circle, Whisker
+from bokeh.models import Button, Slider, Div, Band, Whisker
 
 
 class IdleState:
