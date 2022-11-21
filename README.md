@@ -1,7 +1,8 @@
 # Python scripts to allow custom usage of the Tindeq Progressor from iOS devices and laptops.
 
-The Tindeq Progressor has a fairly simple API, which allows for the creation of custom scripts and tools. In this repository I've provided some custom scripts to perform
-critical force tests.
+The Tindeq Progressor has a fairly simple API, which allows for the creation of custom scripts and tools. In this repository I've provided some custom scripts to perform critical force tests.
+
+**Note:** If you are looking for more functionality, and only want to run on laptops, I suggest looking at https://github.com/sebastianmenze/Tindeq-Progressor-climbing-strength-test-server, which is based on this code, but also includes more tests, and a workout mode.
 
 ## The critical force test
 
