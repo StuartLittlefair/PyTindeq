@@ -4,15 +4,13 @@ import asyncio
 
 import numpy as np
 
-from bleak import BleakClient
-from bleak import discover
+from bleak import BleakClient, BleakScanner
+
 # from bleak import _logger as logger
 
 
 class TindeqProgressor(object):
-    response_codes = {
-        'cmd_resp': 0, 'weight_measure': 1, 'low_pwr': 4
-    }
+    response_codes = {"cmd_resp": 0, "weight_measure": 1, "low_pwr": 4}
     cmds = dict(
         TARE_SCALE=0x64,
         START_WEIGHT_MEAS=0x65,
@@ -20,16 +18,16 @@ class TindeqProgressor(object):
         START_PEAK_RFD_MEAS=0x67,
         START_PEAK_RFD_MEAS_SERIES=0x68,
         ADD_CALIB_POINT=0x69,
-        SAVE_CALIB=0x6a,
-        GET_APP_VERSION=0x6b,
-        GET_ERR_INFO=0x6c,
-        CLR_ERR_INFO=0x6d,
-        SLEEP=0x6e,
-        GET_BATT_VLTG=0x6f
+        SAVE_CALIB=0x6A,
+        GET_APP_VERSION=0x6B,
+        GET_ERR_INFO=0x6C,
+        CLR_ERR_INFO=0x6D,
+        SLEEP=0x6E,
+        GET_BATT_VLTG=0x6F,
     )
-    service_uuid = '7e4e1701-1ea6-40c9-9dcc-13d34ffead57'
-    write_uuid = '7e4e1703-1ea6-40c9-9dcc-13d34ffead57'
-    notify_uuid = '7e4e1702-1ea6-40c9-9dcc-13d34ffead57'
+    service_uuid = "7e4e1701-1ea6-40c9-9dcc-13d34ffead57"
+    write_uuid = "7e4e1703-1ea6-40c9-9dcc-13d34ffead57"
+    notify_uuid = "7e4e1702-1ea6-40c9-9dcc-13d34ffead57"
 
     def __init__(self, parent):
         """
@@ -51,8 +49,8 @@ class TindeqProgressor(object):
             what to do when receiving weight notifications
         """
         self.parent = parent
-        self.info_struct = struct.Struct('<bb')
-        self.data_struct = struct.Struct('<fl')
+        self.info_struct = struct.Struct("<bb")
+        self.data_struct = struct.Struct("<fl")
         self._tare_value = 0.0
 
     async def __aenter__(self):
@@ -68,25 +66,25 @@ class TindeqProgressor(object):
         """
         data = bytes(data)
         kind, size = self.info_struct.unpack(data[:2])
-        if kind == self.response_codes['weight_measure']:
+        if kind == self.response_codes["weight_measure"]:
             # decode data
             for weight, useconds in self.data_struct.iter_unpack(data[2:]):
-                now = useconds/1.0e6
+                now = useconds / 1.0e6
                 self.parent.log_force_sample(now, weight - self._tare_value)
-        elif kind == self.response_codes['cmd_resp']:
+        elif kind == self.response_codes["cmd_resp"]:
             self._cmd_response(data)
-        elif kind == self.response_codes['low_pwr']:
-            print('low power warning')
+        elif kind == self.response_codes["low_pwr"]:
+            print("low power warning")
         else:
-            raise RuntimeError(f'unknown msg kind {kind}')
+            raise RuntimeError(f"unknown msg kind {kind}")
 
     def _cmd_response(self, value):
-        if self.last_cmd == 'get_app':
+        if self.last_cmd == "get_app":
             print(f"FW version : {value[2:].decode('utf-8')}")
-        elif self.last_cmd == 'get_batt':
-            vdd, = struct.unpack("<I", value[2:])
+        elif self.last_cmd == "get_batt":
+            (vdd,) = struct.unpack("<I", value[2:])
             print(f"Battery level = {vdd} [mV]")
-        elif self.last_cmd == 'get_err':
+        elif self.last_cmd == "get_err":
             try:
                 print("Crashlog : {0}".format(value[2:].decode("utf-8")))
             except UnicodeDecodeError:
@@ -94,77 +92,74 @@ class TindeqProgressor(object):
         self.last_cmd = None
 
     async def disconnect(self):
-        await self._send_cmd('SLEEP')
+        await self._send_cmd("SLEEP")
         await self.client.disconnect()
         self.client = None
 
     async def connect(self):
-        print('Searching for progressor...')
-        devices = await discover()
-        TARGET_NAME = 'Progressor'
+        print("Searching for progressor...")
+        scanner = BleakScanner()
+        devices = await scanner.discover(timeout=200.0)
+        TARGET_NAME = "Progressor"
         address = None
         for d in devices:
-            if d.name[:len(TARGET_NAME)] == TARGET_NAME:
+            if d.name[: len(TARGET_NAME)] == TARGET_NAME:
                 address = d.address
-                print(
-                    "Found \"{0}\" with address {1}".format(d.name, d.address)
-                )
+                print('Found "{0}" with address {1}'.format(d.name, d.address))
                 break
 
         if address is None:
-            raise RuntimeError('cannot find tindeq')
+            raise RuntimeError("cannot find tindeq")
 
         self.client = BleakClient(address)
         await self.client.connect()
         success = await self.client.is_connected()
         if success:
             await self.client.start_notify(
-                uuid.UUID(self.notify_uuid),
-                self._notify_handler
+                uuid.UUID(self.notify_uuid), self._notify_handler
             )
         else:
-            raise RuntimeError('could not connect to progressor')
+            raise RuntimeError("could not connect to progressor")
         return success
 
     def _pack(self, cmd):
-        return cmd.to_bytes(2, byteorder='little')
+        return cmd.to_bytes(2, byteorder="little")
 
     async def _send_cmd(self, cmd_key):
-        if not hasattr(self, 'client') or self.client is None:
+        if not hasattr(self, "client") or self.client is None:
             return
 
         await self.client.write_gatt_char(
-            uuid.UUID(self.write_uuid),
-            self._pack(self.cmds[cmd_key])
+            uuid.UUID(self.write_uuid), self._pack(self.cmds[cmd_key])
         )
 
     async def get_batt(self):
-        self.last_cmd = 'get_batt'
-        await self._send_cmd('GET_BATT_VLTG')
+        self.last_cmd = "get_batt"
+        await self._send_cmd("GET_BATT_VLTG")
 
     async def get_fw_info(self):
-        self.last_cmd = 'get_app'
-        await self._send_cmd('GET_APP_VERSION')
+        self.last_cmd = "get_app"
+        await self._send_cmd("GET_APP_VERSION")
 
     async def get_err(self):
-        self.last_cmd = 'get_err'
-        await self._send_cmd('GET_ERR_INFO')
+        self.last_cmd = "get_err"
+        await self._send_cmd("GET_ERR_INFO")
 
     async def clear_err(self):
         self.last_cmd = None
-        await self._send_cmd('CLR_ERR_INFO')
+        await self._send_cmd("CLR_ERR_INFO")
 
     async def start_logging_weight(self):
         self.last_cmd = None
-        await self._send_cmd('START_WEIGHT_MEAS')
+        await self._send_cmd("START_WEIGHT_MEAS")
 
     async def stop_logging_weight(self):
         self.last_cmd = None
-        await self._send_cmd('STOP_WEIGHT_MEAS')
+        await self._send_cmd("STOP_WEIGHT_MEAS")
 
     async def sleep(self):
         self.last_cmd = None
-        await self._send_cmd('SLEEP')
+        await self._send_cmd("SLEEP")
 
     async def soft_tare(self):
         _saved_parent = self.parent
@@ -191,7 +186,7 @@ class SampleAverage:
 async def example():
     class Wrapper:
         def log_force_sample(self, time, weight):
-            print(f'{time}: {weight}')
+            print(f"{time}: {weight}")
 
     wrap = Wrapper()
     async with TindeqProgressor(wrap) as tindeq:
