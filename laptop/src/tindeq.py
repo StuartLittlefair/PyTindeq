@@ -103,7 +103,10 @@ class TindeqProgressor(object):
         TARGET_NAME = "Progressor"
         address = None
         for d in devices:
-            if d.name[: len(TARGET_NAME)] == TARGET_NAME:
+            if (
+              hasattr(d, 'name') and 
+              (d.name is not None) and 
+              (d.name[: len(TARGET_NAME)] == TARGET_NAME)):
                 address = d.address
                 print('Found "{0}" with address {1}'.format(d.name, d.address))
                 break
