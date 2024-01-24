@@ -116,7 +116,7 @@ class TindeqProgressor(object):
 
         self.client = BleakClient(address)
         await self.client.connect()
-        success = await self.client.is_connected()
+        success = self.client.is_connected
         if success:
             await self.client.start_notify(
                 uuid.UUID(self.notify_uuid), self._notify_handler
