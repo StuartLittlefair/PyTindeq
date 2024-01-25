@@ -18,7 +18,7 @@ class IdleState:
 
     @staticmethod
     def update(parent):
-        parent.div.style["background-color"] = parent.state.bkg
+        parent.div.styles["background-color"] = parent.state.bkg
         parent.div.text = "10:00"
 
     @staticmethod
@@ -39,7 +39,7 @@ class CountDownState:
         fs = int(10 * (remain - int(remain)))
         secs = int(remain)
         parent.div.text = f"{secs:02d}:{fs:02d}"
-        parent.div.style["background-color"] = parent.state.bkg
+        parent.div.styles["background-color"] = parent.state.bkg
         if elapsed > CountDownState.duration:
             CountDownState.end(parent)
 
@@ -61,7 +61,7 @@ class GoState:
         fs = int(10 * (remain - int(remain)))
         secs = int(remain)
         parent.div.text = f"{secs:02d}:{fs:02d}"
-        parent.div.style["background-color"] = parent.state.bkg
+        parent.div.styles["background-color"] = parent.state.bkg
         if elapsed > GoState.duration:
             GoState.end(parent)
 
@@ -84,7 +84,7 @@ class RestState:
         fs = int(10 * (remain - int(remain)))
         secs = int(remain)
         parent.div.text = f"{secs:02d}:{fs:02d}"
-        parent.div.style["background-color"] = parent.state.bkg
+        parent.div.styles["background-color"] = parent.state.bkg
         if elapsed > RestState.duration:
             RestState.end(parent)
 
@@ -131,24 +131,49 @@ class CFT:
         doc.title = "Tindeq CFT"
         self.btn = Button(label="Waiting for Progressor...")
         duration_slider = Slider(start=5, end=30, value=24, step=1, title="Reps")
-        self.laps = Div(
-            text=f"Rep {0}/{duration_slider.value}",
-            style={"font-size": "400%", "color": "black", "text-align": "center"},
-        )
-        self.div = Div(
-            text="10:00",
-            style={
-                "font-size": "800%",
-                "color": "white",
-                "background-color": "orange",
-                "text-align": "center",
-            },
-        )
-        self.results_div = Div(
-            text="",
-            sizing_mode="stretch_width",
-            style={"font-size": "150%", "color": "black", "text-align": "left"},
-        )
+
+        try:
+            # BOKEH >3.0
+            self.laps = Div(
+                text=f"Rep {0}/{duration_slider.value}",
+                styles={"font-size": "400%", "color": "black", "text-align": "center"},
+            )
+            self.div = Div(
+                text="10:00",
+                styles={
+                    "font-size": "800%",
+                    "color": "white",
+                    "background-color": "orange",
+                    "text-align": "center",
+                },
+            )
+            self.results_div = Div(
+                text="",
+                sizing_mode="stretch_width",
+                styles={"font-size": "150%", "color": "black", "text-align": "left"},
+            )
+        except AttributeError:
+            self.laps = Div(
+                text=f"Rep {0}/{duration_slider.value}",
+                style={"font-size": "400%", "color": "black", "text-align": "center"},
+            )
+            self.div = Div(
+                text="10:00",
+                style={
+                    "font-size": "800%",
+                    "color": "white",
+                    "background-color": "orange",
+                    "text-align": "center",
+                },
+            )
+            self.results_div = Div(
+                text="",
+                sizing_mode="stretch_width",
+                style={"font-size": "150%", "color": "black", "text-align": "left"},
+            )
+            self.laps.styles = self.laps.style
+            self.div.styles = self.div.style
+            self.results_div.styles = self.results_div.style
 
         def onclick():
             self.reps = duration_slider.value
@@ -163,6 +188,7 @@ class CFT:
         self.source = source
         self.fig = fig
         doc.add_periodic_callback(self.update, 50)
+        self.doc = doc
 
     def update(self):
         if self.test_done and not self.analysed:
@@ -225,15 +251,19 @@ class CFT:
 
 async def connect(cft):
     tindeq = TindeqProgressor(cft)
-    await tindeq.connect()
-    cft.tindeq = tindeq
-    await cft.tindeq.soft_tare()
-    await asyncio.sleep(5)
+    try:
+        await tindeq.connect()
+    except Exception as err:
+        cft.doc.add_next_tick_callback(lambda: cft.btn.update(label="Connect Failed"))
+        print("Connection Failed ... check tindeq and restart app")
+    else:
+        cft.tindeq = tindeq
+        await cft.tindeq.soft_tare()
+        await asyncio.sleep(5)
 
 
 async def start_test(cft):
     try:
-
         cft.state.end(cft)
         await cft.tindeq.start_logging_weight()
         await asyncio.sleep(cft.state.duration)
