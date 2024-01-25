@@ -99,7 +99,7 @@ class TindeqProgressor(object):
     async def connect(self):
         print("Searching for progressor...")
         scanner = BleakScanner()
-        devices = await scanner.discover(timeout=200.0)
+        devices = await scanner.discover(timeout=20.0)
         TARGET_NAME = "Progressor"
         address = None
         for d in devices:
@@ -116,7 +116,7 @@ class TindeqProgressor(object):
 
         self.client = BleakClient(address)
         await self.client.connect()
-        success = await self.client.is_connected()
+        success = self.client.is_connected
         if success:
             await self.client.start_notify(
                 uuid.UUID(self.notify_uuid), self._notify_handler
